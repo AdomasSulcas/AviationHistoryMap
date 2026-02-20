@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>The Dawn of Flight — Pioneering Aviation Routes 1903–1914</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=Source+Serif+4:ital,wght@0,300;0,400;0,600;1,400&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet">
+<style>
+  :root{--parchment:#F5F0E8;--ink:#2C2418;--sepia:#8B7355;--sepia-light:#C4AD8A;--panel-bg:rgba(245,240,232,0.96);--shadow:0 4px 24px rgba(44,36,24,0.15)}
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{font-family:'Source Serif 4',Georgia,serif;background:var(--ink);color:var(--ink);overflow:hidden;margin:0;padding:0;width:100%;height:100%;height:100vh;height:100dvh;height:-webkit-fill-available}
+  #map{position:fixed;top:0;left:0;right:0;bottom:0;z-index:1}
+
+  .header{position:fixed;top:0;left:0;right:0;z-index:1000;background:linear-gradient(180deg,rgba(44,36,24,0.88) 0%,rgba(44,36,24,0.6) 70%,transparent 100%);padding:20px 32px 40px;padding-top:max(20px,env(safe-area-inset-top));pointer-events:none}
+  .header h1{font-family:'Playfair Display',serif;font-weight:900;font-size:clamp(22px,3vw,36px);color:var(--parchment);letter-spacing:.02em;line-height:1.15;text-shadow:0 2px 12px rgba(0,0,0,.5)}
+  .header .subtitle{font-family:'Source Serif 4',serif;font-weight:300;font-size:clamp(12px,1.5vw,16px);color:var(--sepia-light);margin-top:4px;letter-spacing:.08em;text-transform:uppercase}
+
+  .timeline-bar{position:fixed;bottom:0;left:0;right:0;z-index:1000;background:linear-gradient(0deg,rgba(44,36,24,0.92) 0%,rgba(44,36,24,0.7) 80%,transparent 100%);padding:36px 32px 24px;padding-bottom:max(24px,env(safe-area-inset-bottom))}
+  .timeline-track{position:relative;height:4px;background:rgba(196,173,138,0.3);border-radius:2px;margin:0 8px 12px;cursor:pointer}
+  .timeline-fill{position:absolute;top:0;left:0;height:100%;background:var(--sepia-light);border-radius:2px;transition:width .3s ease}
+  .timeline-handle{position:absolute;top:50%;width:18px;height:18px;background:var(--parchment);border:3px solid var(--sepia-light);border-radius:50%;transform:translate(-50%,-50%);cursor:grab;transition:transform .15s,box-shadow .15s;box-shadow:0 2px 8px rgba(0,0,0,.3)}
+  .timeline-handle:hover{transform:translate(-50%,-50%) scale(1.2);box-shadow:0 2px 16px rgba(0,0,0,.4)}
+  .timeline-ticks{display:flex;justify-content:space-between;padding:0 4px}
+  .timeline-tick{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:300;color:var(--sepia-light);opacity:.7;cursor:pointer;transition:opacity .2s;user-select:none}
+  .timeline-tick:hover{opacity:1}.timeline-tick.active{opacity:1;color:var(--parchment);font-weight:400}
+  .year-label{font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--parchment);text-align:center;margin-bottom:10px;letter-spacing:.1em}
+
+  .flight-card{position:fixed;top:100px;right:24px;z-index:1000;width:340px;max-height:calc(100vh - 200px);max-height:calc(100dvh - 200px);background:var(--panel-bg);border-radius:6px;box-shadow:var(--shadow);overflow-y:auto;transform:translateX(380px);transition:transform .4s cubic-bezier(.22,1,.36,1);border:1px solid rgba(139,115,85,0.25)}
+  .flight-card.visible{transform:translateX(0)}
+  .flight-card-header{padding:20px 20px 16px;border-bottom:1px solid rgba(139,115,85,0.2);position:relative}
+  .flight-card-close{position:absolute;top:12px;right:12px;width:28px;height:28px;border:none;background:rgba(139,115,85,0.1);border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--sepia);transition:all .2s}
+  .flight-card-close:hover{background:rgba(139,115,85,0.2)}
+  .flight-card-pilot{font-family:'Playfair Display',serif;font-weight:700;font-size:20px;color:var(--ink);margin-bottom:2px;padding-right:32px}
+  .flight-card-date{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--sepia);letter-spacing:.05em}
+  .flight-card-body{padding:16px 20px 20px}
+  .flight-card-significance{font-family:'Playfair Display',serif;font-style:italic;font-size:15px;color:#A0352A;margin-bottom:16px;line-height:1.45}
+  .flight-card-details{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .detail-item{display:flex;flex-direction:column;gap:2px}
+  .detail-label{font-family:'JetBrains Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--sepia)}
+  .detail-value{font-size:14px;font-weight:600;color:var(--ink)}
+  .flight-card-route{margin-top:16px;padding-top:14px;border-top:1px solid rgba(139,115,85,0.15)}
+  .route-visual{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink)}
+  .route-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+  .route-line{flex:1;height:2px;background:repeating-linear-gradient(90deg,var(--sepia-light) 0,var(--sepia-light) 4px,transparent 4px,transparent 8px)}
+  .route-arrow{color:var(--sepia);font-size:11px}
+
+  .legend{position:fixed;bottom:110px;left:24px;z-index:1000;background:var(--panel-bg);border-radius:6px;box-shadow:var(--shadow);padding:16px 18px;border:1px solid rgba(139,115,85,0.25)}
+  .legend h3{font-family:'Playfair Display',serif;font-size:13px;font-weight:700;margin-bottom:10px;color:var(--ink)}
+  .legend-item{display:flex;align-items:center;gap:8px;padding:3px 0;cursor:pointer;transition:opacity .2s;user-select:none}
+  .legend-item:hover{opacity:.8}.legend-item.dimmed{opacity:.3}
+  .legend-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;border:2px solid white;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+  .legend-label{font-size:12px;color:var(--ink)}
+
+  .stats{position:fixed;top:90px;left:24px;z-index:1000;display:flex;flex-direction:column;gap:6px}
+  .stat-pill{background:var(--panel-bg);border-radius:20px;padding:6px 14px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink);box-shadow:0 2px 8px rgba(0,0,0,.1);border:1px solid rgba(139,115,85,0.2);white-space:nowrap}
+  .stat-pill strong{color:#A0352A;font-weight:600}
+
+  .leaflet-tooltip{font-family:'Source Serif 4',serif;font-size:12px;background:var(--panel-bg);border:1px solid var(--sepia-light);color:var(--ink);box-shadow:var(--shadow);border-radius:4px;padding:6px 10px}
+
+  /* MARKER STYLES — large hitboxes for easy clicking */
+  .mw{position:relative;display:flex;align-items:center;justify-content:center;cursor:pointer;width:42px;height:42px}
+  .mw .hit{position:absolute;width:42px;height:42px;border-radius:50%;z-index:1}
+  .mw .ring{position:absolute;border-radius:50%;opacity:0;transition:opacity .2s}
+  .mw:hover .ring{opacity:.25}
+  .mw .core{border-radius:50%;border:2.5px solid white;box-shadow:0 2px 8px rgba(0,0,0,.35);position:relative;z-index:2;transition:transform .2s}
+  .mw:hover .core{transform:scale(1.3)}
+  .mw .core.s{width:12px;height:12px}.mw .core.m{width:15px;height:15px}.mw .core.l{width:20px;height:20px;border-width:3px}
+  .mw .pulse{position:absolute;border-radius:50%;animation:pulse 2.5s ease-out infinite;opacity:0;z-index:0}
+  @keyframes pulse{0%{transform:scale(.8);opacity:.4}100%{transform:scale(2.8);opacity:0}}
+
+  @media(max-width:768px){
+    .header{padding:12px 16px 28px;padding-top:max(12px,env(safe-area-inset-top))}
+    .header h1{font-size:20px}
+    .header .subtitle{font-size:11px;margin-top:2px}
+    .stats{display:none}
+    .legend{bottom:auto;top:70px;left:12px;padding:10px 12px;max-width:170px;font-size:11px}
+    .legend h3{font-size:11px;margin-bottom:6px}
+    .legend-label{font-size:11px}
+    .legend-dot{width:8px;height:8px}
+    .timeline-bar{padding:24px 16px 16px;padding-bottom:max(16px,env(safe-area-inset-bottom))}
+    .timeline-handle{width:26px;height:26px;border-width:3px}
+    .timeline-tick{font-size:9px}
+    .year-label{font-size:11px;margin-bottom:6px}
+    .flight-card{position:fixed;width:calc(100vw - 24px);right:12px;left:12px;top:auto;bottom:100px;max-height:240px;transform:translateY(400px)}
+    .flight-card.visible{transform:translateY(0)}
+    .flight-card-pilot{font-size:17px}
+    .flight-card-significance{font-size:13px}
+  }
+  .header,.legend,.stats,.timeline-bar{animation:fadeIn .8s ease backwards}
+  .header{animation-delay:.3s}.stats{animation-delay:.5s}.legend{animation-delay:.7s}.timeline-bar{animation-delay:.4s}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+</style>
+</head>
+<body>
+<div id="map"></div>
+<noscript><div style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);color:#C4AD8A;font-family:Georgia,serif;text-align:center;padding:24px;max-width:300px;z-index:9999">This interactive map requires a web browser. Please open this file in Safari or Chrome.</div></noscript>
+<div class="header"><h1>The Dawn of Flight</h1><div class="subtitle">Pioneering Aviation Routes · 1903–1914</div></div>
+<div class="stats" id="stats"><div class="stat-pill">Flights shown: <strong id="stat-count">0</strong></div><div class="stat-pill">Max distance: <strong id="stat-distance">—</strong></div></div>
+<div class="legend" id="legend"></div>
+<div class="flight-card" id="flightCard">
+  <div class="flight-card-header">
+    <button class="flight-card-close" onclick="closeCard()">✕</button>
+    <div class="flight-card-pilot" id="card-pilot"></div>
+    <div class="flight-card-date" id="card-date"></div>
+  </div>
+  <div class="flight-card-body">
+    <div class="flight-card-significance" id="card-significance"></div>
+    <div class="flight-card-details" id="card-details"></div>
+    <div class="flight-card-route" id="card-route" style="display:none"></div>
+  </div>
+</div>
+<div class="timeline-bar">
+  <div class="year-label" id="yearLabel">All Flights · 1903–1914</div>
+  <div class="timeline-track" id="timelineTrack">
+    <div class="timeline-fill" id="timelineFill" style="width:100%"></div>
+    <div class="timeline-handle" id="timelineHandle" style="left:100%"></div>
+  </div>
+  <div class="timeline-ticks" id="timelineTicks"></div>
+</div>
+
+<script>
+const F=[
+{id:1,d:'1903-12-17',p:'Orville Wright',g:'Wright Brothers',s:'Kitty Hawk, NC',e:null,la:36.0167,lo:-75.6667,la2:null,lo2:null,dist:'120 ft (37 m)',dur:'12 seconds',ac:'Wright Flyer I',sig:'First powered, controlled, sustained heavier-than-air flight in human history',c:'#A0352A',t:'landmark'},
+{id:2,d:'1903-12-17',p:'Wilbur Wright',g:'Wright Brothers',s:'Kitty Hawk, NC',e:null,la:36.02,lo:-75.66,la2:null,lo2:null,dist:'852 ft (260 m)',dur:'59 seconds',ac:'Wright Flyer I',sig:'Longest flight of the day \u2014 four flights were made before a gust destroyed the Flyer',c:'#A0352A',t:'major'},
+{id:3,d:'1904-09-20',p:'Wilbur Wright',g:'Wright Brothers',s:'Huffman Prairie, OH',e:null,la:39.8,lo:-84.067,la2:null,lo2:null,dist:'4,080 ft (1.2 km)',dur:'1 min 30 sec',ac:'Wright Flyer II',sig:'First complete circle in an airplane \u2014 proving the aircraft was truly controllable',c:'#A0352A',t:'major'},
+{id:4,d:'1905-10-05',p:'Wilbur Wright',g:'Wright Brothers',s:'Huffman Prairie, OH',e:null,la:39.8,lo:-84.07,la2:null,lo2:null,dist:'24.2 miles (39 km)',dur:'39 min 23 sec',ac:'Wright Flyer III',sig:'The Flyer III was the first practical airplane \u2014 this marathon flight proved sustained, maneuverable flight was real',c:'#A0352A',t:'major'},
+{id:8,d:'1906-10-23',p:'Alberto Santos-Dumont',g:'Santos-Dumont',s:'Bagatelle, Paris',e:null,la:48.8683,lo:2.2478,la2:null,lo2:null,dist:'60 m',dur:'~7 sec',ac:'14-bis (Oiseau de Proie)',sig:'First certified heavier-than-air flight in Europe \u2014 took off under its own power with no rail or catapult',c:'#2A5A8A',t:'landmark'},
+{id:9,d:'1906-11-12',p:'Alberto Santos-Dumont',g:'Santos-Dumont',s:'Bagatelle, Paris',e:null,la:48.87,lo:2.25,la2:null,lo2:null,dist:'220 m',dur:'21.5 sec',ac:'14-bis',sig:'Set the first FAI-certified world aviation record \u2014 Europe had entered the air age',c:'#2A5A8A',t:'major'},
+{id:11,d:'1908-01-13',p:'Henri Farman',g:'European Pioneers',s:'Issy-les-Moulineaux',e:'Ch\u00e2teau de Vincennes',la:48.8296,lo:2.2694,la2:48.8314,lo2:2.434,dist:'27 km',dur:'20 min',ac:'Voisin-Farman I',sig:"First cross-country flight in Europe \u2014 won the Grand Prix d'Aviation by flying a closed 1 km circuit",c:'#6B4A8A',t:'major'},
+{id:5,d:'1908-08-08',p:'Wilbur Wright',g:'Wright Brothers',s:'Le Mans, France',e:null,la:47.995,lo:0.195,la2:null,lo2:null,dist:'\u2014',dur:'1 min 45 sec',ac:'Wright Model A',sig:'First public demonstration in Europe \u2014 skeptics were silenced, crowds wept. European aviation was reborn overnight.',c:'#A0352A',t:'major'},
+{id:6,d:'1908-09-17',p:'Orville Wright',g:'Wright Brothers',s:'Fort Myer, VA',e:null,la:38.88,lo:-77.086,la2:null,lo2:null,dist:'~10 km',dur:'~6 min',ac:'Wright Model A',sig:'First military aircraft demonstration \u2014 ended in the first fatal aircraft crash, killing Lt. Thomas Selfridge',c:'#A0352A',t:'major'},
+{id:10,d:'1909-01-13',p:'Alberto Santos-Dumont',g:'Santos-Dumont',s:'Issy-les-Moulineaux, France',e:null,la:48.8296,lo:2.2694,la2:null,lo2:null,dist:'8 km',dur:'\u2014',ac:'Demoiselle',sig:"First cross-country flight in the Demoiselle \u2014 the world's first ultralight aircraft, plans given away free to anyone",c:'#2A5A8A',t:'minor'},
+{id:15,d:'1909-07-02',p:'L\u00e9on Delagrange',g:'European Pioneers',s:'Rome, Italy',e:null,la:41.9028,lo:12.4964,la2:null,lo2:null,dist:'15 km',dur:'15 min',ac:'Voisin',sig:'First flight in Italy \u2014 Delagrange would die in a crash just six months later',c:'#6B4A8A',t:'minor'},
+{id:12,d:'1909-07-18',p:'Louis Bl\u00e9riot',g:'Bl\u00e9riot',s:'\u00c9tampes, France',e:'Orl\u00e9ans, France',la:48.4333,lo:2.15,la2:47.9025,lo2:1.909,dist:'40 km',dur:'35 min',ac:'Bl\u00e9riot XI',sig:'Longest cross-country flight before the Channel crossing \u2014 a dress rehearsal for glory',c:'#3A6B4A',t:'minor'},
+{id:13,d:'1909-07-19',p:'Hubert Latham',g:'European Pioneers',s:'Calais, France',e:'English Channel (ditched)',la:50.9472,lo:1.8567,la2:51.0,lo2:1.5,dist:'~18 km',dur:'\u2014',ac:'Antoinette IV',sig:'First attempted Channel crossing \u2014 engine failure forced a water landing. Latham was found calmly smoking a cigarette on the floating wreck.',c:'#6B4A8A',t:'minor'},
+{id:14,d:'1909-07-25',p:'Louis Bl\u00e9riot',g:'Bl\u00e9riot',s:'Les Baraques (Calais)',e:'Dover, England',la:50.9472,lo:1.8567,la2:51.1275,lo2:1.3139,dist:'36.6 km',dur:'36.5 min',ac:'Bl\u00e9riot XI',sig:'First flight across the English Channel \u2014 proved that the sea no longer protected Britain. Geopolitics changed forever.',c:'#3A6B4A',t:'landmark'},
+{id:7,d:'1909-09-29',p:'Wilbur Wright',g:'Wright Brothers',s:'New York Harbor, NY',e:null,la:40.6892,lo:-74.0445,la2:null,lo2:null,dist:'\u2014',dur:'\u2014',ac:'Wright Model A',sig:'Flew around the Statue of Liberty \u2014 a million New Yorkers watched from rooftops and ferries',c:'#A0352A',t:'major'},
+{id:16,d:'1910-04-27',p:'Louis Paulhan',g:'European Pioneers',s:'London, England',e:'Manchester, England',la:51.5074,lo:-0.1278,la2:53.4808,lo2:-2.2426,dist:'262 km',dur:'2 hr 45 min',ac:'Farman III',sig:'First long-distance flight in England \u2014 won the Daily Mail \u00a310,000 prize, racing against Claude Grahame-White',c:'#6B4A8A',t:'major'},
+{id:17,d:'1910-05-29',p:'Glenn Curtiss',g:'American Pioneers',s:'Albany, NY',e:'New York City, NY',la:42.6526,lo:-73.7562,la2:40.7128,lo2:-74.006,dist:'220 km',dur:'2 hr 30 min',ac:'Curtiss Hudson Flyer',sig:'First long-distance city-to-city flight \u2014 followed the Hudson River, with two stops, winning the $10,000 Pulitzer Prize',c:'#B8762D',t:'major'},
+{id:18,d:'1910-09-23',p:'Jorge Ch\u00e1vez',g:'European Pioneers',s:'Ried-Brig, Switzerland',e:'Domodossola, Italy',la:46.3,lo:8.05,la2:46.1167,lo2:8.3,dist:'45 km',dur:'37 min',ac:'Bl\u00e9riot XI',sig:"First crossing of the Alps \u2014 Ch\u00e1vez's wings collapsed on landing, killing him. His last words: \u201cArriba, siempre arriba\u201d (Higher, ever higher)",c:'#6B4A8A',t:'major'},
+{id:19,d:'1911-11-05',p:'Cal Rodgers',g:'American Pioneers',s:'New York, NY',e:'Pasadena, CA',la:40.7128,lo:-74.006,la2:34.1478,lo2:-118.1445,dist:'4,230 km',dur:'49 days (84 hrs flying)',ac:'Wright EX "Vin Fiz"',sig:'First transcontinental flight across the United States \u2014 crashed 16 times, rebuilt the plane so often that almost no original part remained',c:'#B8762D',t:'landmark'},
+{id:20,d:'1912-04-16',p:'Harriet Quimby',g:'Women Pioneers',s:'Dover, England',e:'Hardelot-Plage, France',la:51.1275,lo:1.3139,la2:50.6333,lo2:1.5833,dist:'~40 km',dur:'59 min',ac:'Bl\u00e9riot XI (50 hp)',sig:'First woman to fly across the English Channel \u2014 her only instruments were a compass and a watch. The news was eclipsed by the sinking of the Titanic the day before.',c:'#2A7A6A',t:'landmark'},
+{id:21,d:'1912-04-22',p:'Denys Corbett Wilson',g:'European Pioneers',s:'Goodwick, Wales',e:'Crane, nr Enniscorthy, Ireland',la:51.9953,lo:-5.071,la2:52.5,lo2:-6.5667,dist:'~100 km',dur:'1 hr 40 min',ac:'Bl\u00e9riot XI',sig:'First successful aeroplane crossing of the Irish Sea \u2014 previous attempts had fallen short or crashed',c:'#6B4A8A',t:'minor'},
+{id:22,d:'1913-05-13',p:'Igor Sikorsky',g:'Russian Pioneers',s:'St. Petersburg, Russia',e:null,la:59.8003,lo:30.2626,la2:null,lo2:null,dist:'\u2014',dur:'1 hr 54 min',ac:'Russky Vityaz (The Russian Knight)',sig:"First flight of the world's first four-engine airplane \u2014 with an enclosed cabin, toilet, and electric lighting. It carried 8 passengers.",c:'#8A4A2A',t:'landmark'},
+{id:23,d:'1913-06-10',p:'Marcel Brindejonc des Moulinais',g:'European Pioneers',s:'Paris, France',e:'Warsaw, Poland',la:48.8566,lo:2.3522,la2:52.2297,lo2:21.0122,dist:'~1,450 km',dur:'one day (sunrise to sunset)',ac:'Morane-Saulnier',sig:'Won the Pommery Cup for longest sunrise-to-sunset flight \u2014 flew 900 miles from Paris to Warsaw in a single day',c:'#6B4A8A',t:'major'},
+{id:24,d:'1913-09-09',p:'Pyotr Nesterov',g:'Russian Pioneers',s:'Syretzk Aerodrome, Kiev',e:null,la:50.4747,lo:30.4383,la2:null,lo2:null,dist:'\u2014',dur:'\u2014',ac:'Nieuport IV',sig:'First loop-the-loop in aviation history \u2014 performed at 600 m altitude. He was promptly arrested for 10 days for "risking government property."',c:'#8A4A2A',t:'landmark'},
+{id:25,d:'1913-09-23',p:'Roland Garros',g:'European Pioneers',s:'Saint-Rapha\u00ebl, France',e:'Bizerte, Tunisia',la:43.4252,lo:6.7682,la2:37.2744,lo2:9.8739,dist:'729 km (453 mi)',dur:'7 hr 53 min',ac:'Morane-Saulnier',sig:'First flight across the Mediterranean Sea \u2014 Garros flew for nearly 8 hours over open water with no way to land safely',c:'#6B4A8A',t:'landmark'},
+{id:26,d:'1913-12-29',p:'Jules V\u00e9drines',g:'European Pioneers',s:'Issy-les-Moulineaux, France',e:'Cairo, Egypt',la:48.8296,lo:2.2694,la2:30.0444,lo2:31.2357,dist:'~3,500 km',dur:'~1 month (multiple stops)',ac:'Bl\u00e9riot XI',sig:'First flight from France to Egypt \u2014 an epic multi-stop journey across the entire Mediterranean world',c:'#6B4A8A',t:'major'},
+{id:27,d:'1914-01-01',p:'Tony Jannus',g:'American Pioneers',s:'St. Petersburg, FL',e:'Tampa, FL',la:27.7676,lo:-82.6403,la2:27.9506,lo2:-82.4572,dist:'37 km (23 mi)',dur:'23 minutes',ac:'Benoist XIV flying boat',sig:"World's first scheduled commercial airline flight \u2014 the $5 ticket (\u2248$150 today) reduced an 11-hour journey to 23 minutes. The airline ran for 90 days.",c:'#B8762D',t:'landmark'},
+{id:28,d:'1914-04-25',p:'P.N.L. Bellinger',g:'American Pioneers',s:'USS Mississippi, Veracruz',e:null,la:19.1903,lo:-96.1533,la2:null,lo2:null,dist:'\u2014',dur:'\u2014',ac:'Curtiss AB-3 flying boat',sig:'First US operational air sortie against another country \u2014 searched for sea mines during the Veracruz incident, launched from a battleship',c:'#B8762D',t:'minor'},
+{id:29,d:'1914-08-15',p:'Various pilots',g:'Military Aviation',s:'Western Front, Belgium',e:null,la:50.9109,lo:3.2171,la2:null,lo2:null,dist:'\u2014',dur:'\u2014',ac:'Various reconnaissance types',sig:"First aerial reconnaissance missions of World War I \u2014 aircraft from all sides begin scouting enemy positions, ending aviation's age of innocence",c:'#5A5A5A',t:'major'},
+{id:30,d:'1914-09-08',p:'Pyotr Nesterov',g:'Russian Pioneers',s:'Zhovkva, Galicia (near Lviv)',e:null,la:50.0552,lo:23.9729,la2:null,lo2:null,dist:'\u2014',dur:'\u2014',ac:'Morane-Saulnier Type G',sig:'First aerial ramming kill in history \u2014 Nesterov deliberately rammed an Austrian Albatros B.II. Both aircraft crashed; all aboard died. The air-combat tactic became known as "taran."',c:'#8A4A2A',t:'landmark'}
+];
+
+const G={
+  'Wright Brothers':{c:'#A0352A',l:'Wright Brothers'},
+  'Santos-Dumont':{c:'#2A5A8A',l:'Santos-Dumont'},
+  'Bl\u00e9riot':{c:'#3A6B4A',l:'Louis Bl\u00e9riot'},
+  'European Pioneers':{c:'#6B4A8A',l:'European Pioneers'},
+  'American Pioneers':{c:'#B8762D',l:'American Pioneers'},
+  'Women Pioneers':{c:'#2A7A6A',l:'Women Pioneers'},
+  'Russian Pioneers':{c:'#8A4A2A',l:'Russian Pioneers'},
+  'Military Aviation':{c:'#5A5A5A',l:'Military Aviation'}
+};
+
+const Y=[1903,1904,1905,1906,1907,1908,1909,1910,1911,1912,1913,1914];
+const map=L.map('map',{center:[46,-10],zoom:4,zoomControl:false,attributionControl:false,minZoom:2,maxZoom:12});
+L.control.zoom({position:'topright'}).addTo(map);
+const tl=L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{attribution:'\u00a9 OSM, \u00a9 CARTO',subdomains:'abcd'}).addTo(map);
+// Detect if tiles fail to load (e.g. iOS Files Quick Look) and show helpful message
+let tileLoaded=false;
+tl.on('tileload',()=>{tileLoaded=true;const fb=document.getElementById('mapFallback');if(fb)fb.remove()});
+setTimeout(()=>{if(!tileLoaded){const d=document.createElement('div');d.id='mapFallback';d.style.cssText='position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);color:#C4AD8A;font-family:Georgia,serif;text-align:center;padding:32px;max-width:320px;z-index:9999;line-height:1.5';d.innerHTML='<div style="font-size:32px;margin-bottom:12px">\u2708\ufe0f</div><div style="font-size:16px;font-weight:600;margin-bottom:8px">Open in Safari to view</div><div style="font-size:13px;opacity:.7">Tap the share icon below, then choose \u201cOpen in Safari\u201d</div>';document.body.appendChild(d)}},3000);
+
+let curY=1914,actG=new Set(Object.keys(G)),mks=[],pts=[];
+
+function mkIcon(col,tier){
+  const sz=tier==='landmark'?'l':tier==='major'?'m':'s';
+  const cs={l:20,m:15,s:12}[sz];
+  const rs=cs+18;
+  const ph=tier==='landmark'?`<div class="pulse" style="background:${col};width:${cs+10}px;height:${cs+10}px"></div>`:'';
+  return L.divIcon({className:'',html:`<div class="mw"><div class="hit"></div><div class="ring" style="background:${col};width:${rs}px;height:${rs}px"></div>${ph}<div class="core ${sz}" style="background:${col}"></div></div>`,iconSize:[42,42],iconAnchor:[21,21]});
+}
+
+function vis(){return F.filter(f=>parseInt(f.d.substring(0,4))<=curY&&actG.has(f.g))}
+function clr(){mks.forEach(m=>map.removeLayer(m));pts.forEach(p=>map.removeLayer(p));mks=[];pts=[]}
+// Offset overlapping coordinates so all dots are visible
+function dedupCoords(flights){
+  const seen={};const out=[];
+  // Collect all coordinate points (starts + ends)
+  const allPts=[];
+  flights.forEach(f=>{
+    allPts.push({id:f.id,type:'s',lat:f.la,lon:f.lo});
+    if(f.la2!=null) allPts.push({id:f.id,type:'e',lat:f.la2,lon:f.lo2});
+  });
+  // Find overlaps: round to ~100m precision
+  const buckets={};
+  allPts.forEach(pt=>{
+    const k=Math.round(pt.lat*100)+','+Math.round(pt.lon*100);
+    if(!buckets[k])buckets[k]=[];
+    buckets[k].push(pt);
+  });
+  // Assign offsets to overlapping points
+  const offsets={};// key: id+type -> {dlat, dlon}
+  Object.values(buckets).forEach(pts=>{
+    if(pts.length<=1)return;
+    const step=0.008;// ~800m offset
+    const angles=pts.map((_,i)=>(2*Math.PI*i)/pts.length);
+    pts.forEach((pt,i)=>{
+      const key=pt.id+'_'+pt.type;
+      offsets[key]={dlat:Math.cos(angles[i])*step,dlon:Math.sin(angles[i])*step};
+    });
+  });
+  return offsets;
+}
+function render(){
+  clr();const v=vis();
+  const offsets=dedupCoords(v);
+  v.forEach(f=>{
+    const so=offsets[f.id+'_s']||{dlat:0,dlon:0};
+    const sla=f.la+so.dlat, slo=f.lo+so.dlon;
+    const m=L.marker([sla,slo],{icon:mkIcon(f.c,f.t)});
+    m.bindTooltip(`<strong>${f.p}</strong><br>${f.d} \u00b7 ${f.s}`,{direction:'top',offset:[0,-22]});
+    m.on('click',()=>showCard(f));m.addTo(map);mks.push(m);
+    if(f.la2!=null){
+      const eo=offsets[f.id+'_e']||{dlat:0,dlon:0};
+      const ela=f.la2+eo.dlat, elo=f.lo2+eo.dlon;
+      // Line connects exactly to marker positions
+      const path=L.polyline([[sla,slo],[ela,elo]],{color:f.c,weight:2.5,opacity:.65,dashArray:'8 6'});
+      path.on('click',()=>showCard(f));path.addTo(map);pts.push(path);
+      const m2=L.marker([ela,elo],{icon:mkIcon(f.c,'minor')});
+      m2.bindTooltip(`<strong>${f.p}</strong><br>${f.d} \u00b7 ${f.e}`,{direction:'top',offset:[0,-22]});
+      m2.on('click',()=>showCard(f));m2.addTo(map);mks.push(m2);
+    }
+  });
+  document.getElementById('stat-count').textContent=v.length;
+  const dO=[26,23,19,25,16,17,18,12,14,4,11,10],dL={26:'~3,500 km',23:'~1,450 km',19:'4,230 km',25:'729 km',16:'262 km',17:'220 km',18:'45 km',12:'40 km',14:'36.6 km',4:'39 km',11:'27 km',10:'8 km'};
+  let md='260 m';for(const id of dO)if(v.some(f=>f.id===id)){md=dL[id];break;}
+  document.getElementById('stat-distance').textContent=md;
+}
+
+function showCard(f){
+  document.getElementById('card-pilot').textContent=f.p;
+  document.getElementById('card-date').textContent=new Date(f.d+'T00:00:00').toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  document.getElementById('card-significance').textContent=f.sig;
+  document.getElementById('card-details').innerHTML=`
+    <div class="detail-item"><span class="detail-label">Aircraft</span><span class="detail-value">${f.ac}</span></div>
+    <div class="detail-item"><span class="detail-label">Distance</span><span class="detail-value">${f.dist}</span></div>
+    <div class="detail-item"><span class="detail-label">Duration</span><span class="detail-value">${f.dur}</span></div>
+    <div class="detail-item"><span class="detail-label">Group</span><span class="detail-value" style="color:${f.c}">${f.g}</span></div>`;
+  const r=document.getElementById('card-route');
+  if(f.e){r.style.display='block';r.innerHTML=`<div class="route-visual"><div class="route-dot" style="background:${f.c}"></div><span>${f.s}</span><div class="route-line"></div><span class="route-arrow">\u25b6</span><div class="route-dot" style="background:${f.c}"></div><span>${f.e}</span></div>`;}
+  else r.style.display='none';
+  document.getElementById('flightCard').classList.add('visible');
+  if(f.la2){const mob=window.innerWidth<768;map.fitBounds([[f.la,f.lo],[f.la2,f.lo2]],{padding:mob?[60,40]:[80,400],maxZoom:8});}
+  else map.setView([f.la,f.lo],7,{animate:true});
+}
+function closeCard(){document.getElementById('flightCard').classList.remove('visible')}
+
+function renderLegend(){
+  const el=document.getElementById('legend');el.innerHTML='<h3>Aviators</h3>';
+  Object.entries(G).forEach(([k,g])=>{
+    const i=document.createElement('div');i.className='legend-item'+(actG.has(k)?'':' dimmed');
+    i.innerHTML=`<div class="legend-dot" style="background:${g.c}"></div><span class="legend-label">${g.l}</span>`;
+    i.addEventListener('click',()=>{if(actG.has(k)){if(actG.size===1)return;actG.delete(k)}else actG.add(k);renderLegend();render()});
+    el.appendChild(i);
+  });
+}
+
+function renderTL(){
+  const t=document.getElementById('timelineTicks');t.innerHTML='';
+  Y.forEach(y=>{const s=document.createElement('span');s.className='timeline-tick'+(y<=curY?' active':'');s.textContent=y;s.addEventListener('click',()=>setY(y));t.appendChild(s)});
+  updTL();
+}
+function setY(y){curY=y;updTL();render();closeCard()}
+function updTL(){
+  const p=((curY-Y[0])/(Y[Y.length-1]-Y[0]))*100;
+  document.getElementById('timelineFill').style.width=p+'%';
+  document.getElementById('timelineHandle').style.left=p+'%';
+  document.getElementById('yearLabel').textContent=curY===Y[Y.length-1]?`All Flights \u00b7 ${Y[0]}\u2013${Y[Y.length-1]}`:`Flights through ${curY}`;
+  document.querySelectorAll('.timeline-tick').forEach((t,i)=>t.classList.toggle('active',Y[i]<=curY));
+}
+
+let drag=false;const hdl=document.getElementById('timelineHandle'),trk=document.getElementById('timelineTrack');
+function yFromX(cx){const r=trk.getBoundingClientRect();return Y[Math.round(Math.max(0,Math.min(1,(cx-r.left)/r.width))*(Y.length-1))]}
+hdl.addEventListener('mousedown',e=>{drag=true;e.preventDefault()});
+hdl.addEventListener('touchstart',()=>{drag=true},{passive:true});
+document.addEventListener('mousemove',e=>{if(drag)setY(yFromX(e.clientX))});
+document.addEventListener('touchmove',e=>{if(drag)setY(yFromX(e.touches[0].clientX))},{passive:true});
+document.addEventListener('mouseup',()=>drag=false);
+document.addEventListener('touchend',()=>drag=false);
+trk.addEventListener('click',e=>setY(yFromX(e.clientX)));
+
+renderLegend();renderTL();render();
+// Force Leaflet to recalculate container size (fixes blank map on mobile/local files)
+window.addEventListener('load',()=>{map.invalidateSize()});
+setTimeout(()=>map.invalidateSize(),200);
+window.addEventListener('resize',()=>map.invalidateSize());
+</script>
+</body>
+</html>
